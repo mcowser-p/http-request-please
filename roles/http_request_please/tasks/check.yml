@@ -59,14 +59,16 @@
     - name: "Assert the SAN covers the name"
       vars:
         _want: "{{ _http_request_please_sni if _http_request_please_sni | length > 0 else _http_request_please_host }}"
+        # exact match, or a single-label wildcard (*.example.com covers
+        # api.example.com but not a.b.example.com — standard TLS rules)
+        _wildcard: "{{ '*.' ~ (_want.split('.')[1:] | join('.')) }}"
+        _san_names: >-
+          {{ _http_request_please_certinfo.subject_alt_name | default([])
+             | map('regex_replace', '^(DNS|IP Address|IP|email):', '') | list }}
       ansible.builtin.assert:
-        that: >-
-          _http_request_please_certinfo.subject_alt_name | default([])
-          | select('search', _want | regex_escape)
-          | list | length > 0
+        that: _want in _san_names or _wildcard in _san_names
         fail_msg: >-
-          certificate SANs {{ _http_request_please_certinfo.subject_alt_name | default([]) }}
-          do not cover {{ _want }}
+          certificate SANs {{ _san_names }} do not cover {{ _want }}
   rescue:
     - name: "Record the certificate failure"
       ansible.builtin.set_fact:
