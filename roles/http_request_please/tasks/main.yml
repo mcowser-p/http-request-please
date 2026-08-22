@@ -43,8 +43,8 @@
   ansible.builtin.include_tasks: check.yml
   loop: "{{ _http_request_please_all }}"
   loop_control:
-    loop_var: _http_item
-    label: "{{ _http_item.name | default(_http_item.url | default(_http_item.host)) }}"
+    loop_var: _http_request_please_item
+    label: "{{ _http_request_please_item.name | default(_http_request_please_item.url | default(_http_request_please_item.host)) }}"
 
 - name: Summarize
   vars:

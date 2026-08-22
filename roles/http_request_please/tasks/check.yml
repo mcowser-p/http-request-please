@@ -5,138 +5,138 @@
 
 - name: Normalize the request
   ansible.builtin.set_fact:
-    _http_scheme: "{{ _http_item.scheme | default(http_request_please_scheme) }}"
-    _http_host: "{{ _http_item.host | default('') }}"
-    _http_sni: "{{ _http_item.sni | default('') }}"
-    _http_port: >-
-      {{ _http_item.port | default(
+    _http_request_please_scheme: "{{ _http_request_please_item.scheme | default(http_request_please_scheme) }}"
+    _http_request_please_host: "{{ _http_request_please_item.host | default('') }}"
+    _http_request_please_sni: "{{ _http_request_please_item.sni | default('') }}"
+    _http_request_please_port: >-
+      {{ _http_request_please_item.port | default(
            http_request_please_port
            if http_request_please_port | string | length > 0
-           else (443 if (_http_item.scheme | default(http_request_please_scheme)) == 'https' else 80)) }}
-    _http_method: "{{ _http_item.method | default(http_request_please_method) }}"
-    _http_status: "{{ _http_item.status_code | default(http_request_please_status_code) }}"
-    _http_timeout: "{{ _http_item.timeout | default(http_request_please_timeout) }}"
-    _http_retries: "{{ _http_item.retries | default(http_request_please_retries) }}"
-    _http_delay: "{{ _http_item.delay | default(http_request_please_delay) }}"
+           else (443 if (_http_request_please_item.scheme | default(http_request_please_scheme)) == 'https' else 80)) }}
+    _http_request_please_method: "{{ _http_request_please_item.method | default(http_request_please_method) }}"
+    _http_request_please_status: "{{ _http_request_please_item.status_code | default(http_request_please_status_code) }}"
+    _http_request_please_timeout: "{{ _http_request_please_item.timeout | default(http_request_please_timeout) }}"
+    _http_request_please_retries: "{{ _http_request_please_item.retries | default(http_request_please_retries) }}"
+    _http_request_please_delay: "{{ _http_request_please_item.delay | default(http_request_please_delay) }}"
 
 - name: Compose the URL and headers
   vars:
     # sni + explicit validate_certs absent -> routing mode (certs off for
     # the request; cert_check is the honest certificate test)
-    _routing_mode: "{{ _http_sni | length > 0 and _http_item.validate_certs is not defined }}"
+    _routing_mode: "{{ _http_request_please_sni | length > 0 and _http_request_please_item.validate_certs is not defined }}"
   ansible.builtin.set_fact:
-    _http_name: "{{ _http_item.name | default(_http_item.url | default(_http_host ~ ':' ~ _http_port)) }}"
-    _http_url: >-
-      {{ _http_item.url
-         | default(_http_scheme ~ '://' ~ _http_host ~ ':' ~ _http_port
-                   ~ (_http_item.path | default('/'))) }}
-    _http_headers: >-
-      {{ (_http_item.headers | default({}))
-         | combine({'Host': _http_sni} if _http_sni | length > 0 else {}) }}
-    _http_validate: >-
+    _http_request_please_name: "{{ _http_request_please_item.name | default(_http_request_please_item.url | default(_http_request_please_host ~ ':' ~ _http_request_please_port)) }}"
+    _http_request_please_url: >-
+      {{ _http_request_please_item.url
+         | default(_http_request_please_scheme ~ '://' ~ _http_request_please_host ~ ':' ~ _http_request_please_port
+                   ~ (_http_request_please_item.path | default('/'))) }}
+    _http_request_please_headers: >-
+      {{ (_http_request_please_item.headers | default({}))
+         | combine({'Host': _http_request_please_sni} if _http_request_please_sni | length > 0 else {}) }}
+    _http_request_please_validate: >-
       {{ false if _routing_mode
-         else (_http_item.validate_certs | default(http_request_please_validate_certs)) }}
+         else (_http_request_please_item.validate_certs | default(http_request_please_validate_certs)) }}
 
-- name: "Check the certificate SAN ({{ _http_name }})"
-  when: _http_item.cert_check | default(false)
+- name: "Check the certificate SAN of {{ _http_request_please_name }}"
+  when: _http_request_please_item.cert_check | default(false)
   delegate_to: localhost
   become: false
   check_mode: false
   block:
     - name: "Fetch the certificate with SNI"
       community.crypto.get_certificate:
-        host: "{{ _http_host if _http_host | length > 0 else (_http_url | urlsplit('hostname')) }}"
-        port: "{{ _http_port }}"
-        server_name: "{{ _http_sni if _http_sni | length > 0 else omit }}"
-      register: _http_cert
+        host: "{{ _http_request_please_host if _http_request_please_host | length > 0 else (_http_request_please_url | urlsplit('hostname')) }}"
+        port: "{{ _http_request_please_port }}"
+        server_name: "{{ _http_request_please_sni if _http_request_please_sni | length > 0 else omit }}"
+      register: _http_request_please_cert
 
     - name: "Assert the SAN covers the name"
       vars:
-        _want: "{{ _http_sni if _http_sni | length > 0 else _http_host }}"
+        _want: "{{ _http_request_please_sni if _http_request_please_sni | length > 0 else _http_request_please_host }}"
       ansible.builtin.assert:
         that: >-
-          _http_cert.subject_alt_name | default([])
+          _http_request_please_cert.subject_alt_name | default([])
           | select('search', _want | regex_escape)
           | list | length > 0
         fail_msg: >-
-          certificate SANs {{ _http_cert.subject_alt_name | default([]) }}
+          certificate SANs {{ _http_request_please_cert.subject_alt_name | default([]) }}
           do not cover {{ _want }}
   rescue:
     - name: "Record the certificate failure"
       ansible.builtin.set_fact:
         _http_request_please_results: >-
           {{ _http_request_please_results
-             + [{'name': _http_name, 'ok': false,
+             + [{'name': _http_request_please_name, 'ok': false,
                  'detail': 'cert check failed: '
                            ~ (ansible_failed_result.msg | default('unknown'))}] }}
 
     - name: "Fail fast on the certificate"
       ansible.builtin.fail:
-        msg: "{{ _http_name }}: certificate check failed"
+        msg: "{{ _http_request_please_name }}: certificate check failed"
       when: http_request_please_fail_fast
 
-- name: "Request {{ _http_name }} (linux)"
+- name: "Linux request of {{ _http_request_please_name }}"
   when:
     - ansible_os_family != 'Windows'
-    - not (_http_request_please_results | selectattr('name', 'eq', _http_name) | list | length > 0)
+    - not (_http_request_please_results | selectattr('name', 'eq', _http_request_please_name) | list | length > 0)
   ansible.builtin.uri:
-    url: "{{ _http_url }}"
-    method: "{{ _http_method }}"
-    headers: "{{ _http_headers }}"
-    body: "{{ _http_item.body | default(omit) }}"
-    body_format: "{{ _http_item.body_format | default(omit) }}"
-    status_code: "{{ _http_status }}"
-    validate_certs: "{{ _http_validate }}"
-    timeout: "{{ _http_timeout }}"
+    url: "{{ _http_request_please_url }}"
+    method: "{{ _http_request_please_method }}"
+    headers: "{{ _http_request_please_headers }}"
+    body: "{{ _http_request_please_item.body | default(omit) }}"
+    body_format: "{{ _http_request_please_item.body_format | default(omit) }}"
+    status_code: "{{ _http_request_please_status }}"
+    validate_certs: "{{ _http_request_please_validate }}"
+    timeout: "{{ _http_request_please_timeout }}"
     return_content: true
-  register: _http_resp
-  retries: "{{ _http_retries }}"
-  delay: "{{ _http_delay }}"
-  until: _http_resp.status in (_http_status | map('int') | list)
+  register: _http_request_please_resp
+  retries: "{{ _http_request_please_retries }}"
+  delay: "{{ _http_request_please_delay }}"
+  until: _http_request_please_resp.status in (_http_request_please_status | map('int') | list)
   failed_when: false
 
-- name: "Request {{ _http_name }} (windows)"
+- name: "Windows request of {{ _http_request_please_name }}"
   when:
     - ansible_os_family == 'Windows'
-    - not (_http_request_please_results | selectattr('name', 'eq', _http_name) | list | length > 0)
+    - not (_http_request_please_results | selectattr('name', 'eq', _http_request_please_name) | list | length > 0)
   ansible.windows.win_uri:
-    url: "{{ _http_url }}"
-    method: "{{ _http_method }}"
-    headers: "{{ _http_headers }}"
-    body: "{{ _http_item.body | default(omit) }}"
-    status_code: "{{ _http_status }}"
-    validate_certs: "{{ _http_validate }}"
-    timeout: "{{ _http_timeout }}"
+    url: "{{ _http_request_please_url }}"
+    method: "{{ _http_request_please_method }}"
+    headers: "{{ _http_request_please_headers }}"
+    body: "{{ _http_request_please_item.body | default(omit) }}"
+    status_code: "{{ _http_request_please_status }}"
+    validate_certs: "{{ _http_request_please_validate }}"
+    timeout: "{{ _http_request_please_timeout }}"
     return_content: true
-  register: _http_resp_win
-  retries: "{{ _http_retries }}"
-  delay: "{{ _http_delay }}"
-  until: _http_resp_win.status_code | default(0) in (_http_status | map('int') | list)
+  register: _http_request_please_resp_win
+  retries: "{{ _http_request_please_retries }}"
+  delay: "{{ _http_request_please_delay }}"
+  until: _http_request_please_resp_win.status_code | default(0) in (_http_request_please_status | map('int') | list)
   failed_when: false
 
-- name: "Evaluate {{ _http_name }}"
-  when: not (_http_request_please_results | selectattr('name', 'eq', _http_name) | list | length > 0)
+- name: "Evaluate {{ _http_request_please_name }}"
+  when: not (_http_request_please_results | selectattr('name', 'eq', _http_request_please_name) | list | length > 0)
   vars:
-    _r: "{{ _http_resp if ansible_os_family != 'Windows' else _http_resp_win }}"
+    _r: "{{ _http_request_please_resp if ansible_os_family != 'Windows' else _http_request_please_resp_win }}"
     _got_status: "{{ _r.status | default(_r.status_code) | default(-1) }}"
     _body: "{{ _r.content | default('') }}"
-    _status_ok: "{{ _got_status | int in (_http_status | map('int') | list) }}"
+    _status_ok: "{{ _got_status | int in (_http_request_please_status | map('int') | list) }}"
     _contains_ok: >-
-      {{ true if _http_item.contains is not defined
-         else (_body is search(_http_item.contains)) }}
+      {{ true if _http_request_please_item.contains is not defined
+         else (_body is search(_http_request_please_item.contains)) }}
   ansible.builtin.set_fact:
     _http_request_please_results: >-
       {{ _http_request_please_results
-         + [{'name': _http_name,
+         + [{'name': _http_request_please_name,
              'ok': _status_ok and _contains_ok,
-             'detail': ('status ' ~ _got_status ~ ' not in ' ~ (_http_status | string))
+             'detail': ('status ' ~ _got_status ~ ' not in ' ~ (_http_request_please_status | string))
                        if not _status_ok
-                       else ('body does not match: ' ~ _http_item.contains | default(''))
+                       else ('body does not match: ' ~ _http_request_please_item.contains | default(''))
                             if not _contains_ok else 'ok'}] }}
 
 - name: "Fail fast"
   ansible.builtin.fail:
-    msg: "{{ _http_name }}: {{ (_http_request_please_results | last).detail }}"
+    msg: "{{ _http_request_please_name }}: {{ (_http_request_please_results | last).detail }}"
   when:
     - http_request_please_fail_fast
     - not (_http_request_please_results | last).ok
