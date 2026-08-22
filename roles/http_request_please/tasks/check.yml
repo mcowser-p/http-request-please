@@ -50,16 +50,22 @@
         server_name: "{{ _http_request_please_sni if _http_request_please_sni | length > 0 else omit }}"
       register: _http_request_please_cert
 
+    # get_certificate returns the PEM but not parsed SANs — parse it.
+    - name: "Parse the certificate"
+      community.crypto.x509_certificate_info:
+        content: "{{ _http_request_please_cert.cert }}"
+      register: _http_request_please_certinfo
+
     - name: "Assert the SAN covers the name"
       vars:
         _want: "{{ _http_request_please_sni if _http_request_please_sni | length > 0 else _http_request_please_host }}"
       ansible.builtin.assert:
         that: >-
-          _http_request_please_cert.subject_alt_name | default([])
+          _http_request_please_certinfo.subject_alt_name | default([])
           | select('search', _want | regex_escape)
           | list | length > 0
         fail_msg: >-
-          certificate SANs {{ _http_request_please_cert.subject_alt_name | default([]) }}
+          certificate SANs {{ _http_request_please_certinfo.subject_alt_name | default([]) }}
           do not cover {{ _want }}
   rescue:
     - name: "Record the certificate failure"
