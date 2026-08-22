@@ -1,0 +1,21 @@
+---
+# Example request suite for mcowser_p.http_request_please.
+# Top level may be this list, or a dict with a `requests:` key.
+- name: github-api
+  url: https://api.github.com/
+  status_code: [200]
+  contains: current_user_url
+
+- name: internal-by-ip-with-sni
+  host: 10.0.0.5
+  sni: api.internal.example.com
+  port: 8443
+  path: /health
+  status_code: [200]
+  cert_check: true
+
+- name: plain-dns
+  host: example.com
+  scheme: https
+  path: /
+  status_code: [200, 301]

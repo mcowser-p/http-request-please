@@ -1,0 +1,36 @@
+---
+driver:
+  name: docker
+platforms:
+  - name: checker-alma9
+    image: almalinux:9
+    pre_build_image: true
+    networks:
+      - name: hrp-net
+  - name: checker-ubuntu
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    networks:
+      - name: hrp-net
+  - name: httpbin
+    image: mccutchen/go-httpbin:latest
+    pre_build_image: true
+    command: /bin/go-httpbin -port 8080
+    networks:
+      - name: hrp-net
+    groups:
+      - sidecar
+
+role_name_check: 1
+dependency:
+  name: galaxy
+  options:
+    requirements-file: ../../../../requirements.yml
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: ../../../../roles
+  inventory:
+    host_vars:
+      httpbin:
+        ansible_connection: local

@@ -1,0 +1,11 @@
+---
+- name: Verify
+  hosts: all:!sidecar
+  tasks:
+    - name: The converge already asserted everything — confirm reachability once more
+      ansible.builtin.include_role:
+        name: http_request_please
+      vars:
+        http_request_please_requests:
+          - name: final-sanity
+            url: http://httpbin:8080/status/200

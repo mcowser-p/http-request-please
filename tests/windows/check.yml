@@ -1,0 +1,7 @@
+---
+- name: Windows HTTP checks over both transports
+  hosts: windows
+  roles:
+    - role: http_request_please
+      vars:
+        http_request_please_file: "{{ playbook_dir }}/checks.yml"

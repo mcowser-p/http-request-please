@@ -1,0 +1,31 @@
+---
+galaxy_info:
+  namespace: mcowser_p
+  role_name: http_request_please
+  author: mcowser-p
+  description: >-
+    Declarative HTTP sanity checks from JSON/YAML files or inline vars,
+    for Linux and Windows targets — IP, IP+SNI/SAN, or DNS endpoints
+  license: Apache-2.0
+  min_ansible_version: '2.16'
+
+  platforms:
+    - name: EL
+      versions:
+        - '9'
+        - '10'
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+    - name: Windows
+      versions:
+        - '2022'
+
+  galaxy_tags:
+    - http
+    - monitoring
+    - healthcheck
+    - windows
+
+dependencies: []

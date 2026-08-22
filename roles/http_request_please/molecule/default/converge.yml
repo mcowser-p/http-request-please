@@ -1,0 +1,63 @@
+---
+- name: Converge
+  hosts: all:!sidecar
+  tasks:
+    - name: Inline checks — DNS name, explicit port, contains
+      ansible.builtin.include_role:
+        name: http_request_please
+      vars:
+        http_request_please_requests:
+          - name: httpbin-by-dns
+            host: httpbin
+            scheme: http
+            port: 8080
+            path: /status/200
+          - name: httpbin-post-json
+            url: http://httpbin:8080/anything
+            method: POST
+            body: {hello: world}
+            body_format: json
+            contains: '"hello"'
+          - name: httpbin-teapot
+            host: httpbin
+            scheme: http
+            port: 8080
+            path: /status/418
+            status_code: [418]
+
+    - name: File-based checks (YAML)
+      ansible.builtin.include_role:
+        name: http_request_please
+      vars:
+        http_request_please_file: "{{ playbook_dir }}/files/checks.yml"
+
+    - name: File-based checks (JSON)
+      ansible.builtin.include_role:
+        name: http_request_please
+      vars:
+        http_request_please_file: "{{ playbook_dir }}/files/checks.json"
+
+    - name: A failing suite must fail
+      block:
+        - name: Run a check that cannot pass
+          ansible.builtin.include_role:
+            name: http_request_please
+          vars:
+            http_request_please_requests:
+              - name: expected-to-fail
+                host: httpbin
+                scheme: http
+                port: 8080
+                path: /status/500
+                status_code: [200]
+                retries: 1
+                delay: 1
+
+        - name: The role failed to fail
+          ansible.builtin.fail:
+            msg: the failing check did not fail the role
+      rescue:
+        - name: Confirm the failure was the check itself
+          ansible.builtin.assert:
+            that: "'checks FAILED' in (ansible_failed_result.msg | default(''))"
+            fail_msg: "role failed for the wrong reason: {{ ansible_failed_result.msg | default('?') }}"

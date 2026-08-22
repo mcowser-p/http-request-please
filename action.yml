@@ -1,0 +1,89 @@
+---
+name: HTTP Request, Please
+description: >-
+  Declarative HTTP sanity checks — point at a JSON/YAML suite of requests
+  (IP, IP+SNI/SAN, or DNS targets; ports, status and body assertions,
+  optional certificate SAN validation) or define a single check inline.
+author: mcowser-p
+branding:
+  icon: activity
+  color: purple
+
+inputs:
+  requests_file:
+    description: Path (in your checkout) to a JSON or YAML request suite.
+    required: false
+    default: ""
+  url:
+    description: Single-check mode — the URL to request.
+    required: false
+    default: ""
+  method:
+    description: Single-check mode — HTTP method.
+    required: false
+    default: GET
+  status_code:
+    description: Single-check mode — comma-separated acceptable statuses.
+    required: false
+    default: "200"
+  contains:
+    description: Single-check mode — regex the response body must match.
+    required: false
+    default: ""
+  fail_fast:
+    description: Stop at the first failing check.
+    required: false
+    default: "false"
+  ansible_version:
+    description: ansible-core version to install.
+    required: false
+    default: "2.21.3"
+
+runs:
+  using: composite
+  steps:
+    - name: Install ansible-core
+      shell: bash
+      run: pip install --quiet "ansible-core==${{ inputs.ansible_version }}"
+
+    - name: Install collection dependencies
+      shell: bash
+      run: ansible-galaxy collection install --ignore-errors ansible.windows community.crypto
+
+    - name: Run the checks
+      shell: bash
+      env:
+        ANSIBLE_ROLES_PATH: ${{ github.action_path }}/roles
+        HRP_FILE: ${{ inputs.requests_file }}
+        HRP_URL: ${{ inputs.url }}
+        HRP_METHOD: ${{ inputs.method }}
+        HRP_STATUS: ${{ inputs.status_code }}
+        HRP_CONTAINS: ${{ inputs.contains }}
+        HRP_FAIL_FAST: ${{ inputs.fail_fast }}
+      run: |
+        python3 - <<'PY'
+        import json, os
+        req = []
+        if os.environ["HRP_URL"]:
+            item = {"url": os.environ["HRP_URL"],
+                    "method": os.environ["HRP_METHOD"],
+                    "status_code": [int(s) for s in os.environ["HRP_STATUS"].split(",")]}
+            if os.environ["HRP_CONTAINS"]:
+                item["contains"] = os.environ["HRP_CONTAINS"]
+            req.append(item)
+        extra = {
+            "http_request_please_file": os.environ["HRP_FILE"],
+            "http_request_please_requests": req,
+            "http_request_please_fail_fast": os.environ["HRP_FAIL_FAST"] == "true",
+        }
+        json.dump(extra, open("/tmp/hrp-extra.json", "w"))
+        PY
+        cat > /tmp/hrp-play.yml <<'PLAY'
+        - name: HTTP request, please
+          hosts: localhost
+          connection: local
+          gather_facts: true
+          roles:
+            - http_request_please
+        PLAY
+        ansible-playbook -i localhost, /tmp/hrp-play.yml -e @/tmp/hrp-extra.json

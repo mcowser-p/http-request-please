@@ -1,0 +1,10 @@
+{
+  "requests": [
+    {
+      "name": "github-api-json",
+      "url": "https://api.github.com/",
+      "status_code": [200],
+      "contains": "current_user_url"
+    }
+  ]
+}

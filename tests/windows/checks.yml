@@ -1,0 +1,12 @@
+---
+- name: github-api
+  url: https://api.github.com/
+  status_code: [200]
+  contains: current_user_url
+
+- name: github-by-components
+  host: api.github.com
+  scheme: https
+  port: 443
+  path: /
+  cert_check: true

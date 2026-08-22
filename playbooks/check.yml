@@ -1,0 +1,11 @@
+---
+# ansible-playbook -i inventory mcowser_p.http_request_please.check \
+#   -e checks_file=./checks.yml
+- name: HTTP request, please
+  hosts: all
+  roles:
+    - role: mcowser_p.http_request_please.http_request_please
+      vars:
+        http_request_please_file: "{{ checks_file | default('') }}"
+        http_request_please_requests: "{{ requests | default([]) }}"
+        http_request_please_fail_fast: "{{ fail_fast | default(false) }}"

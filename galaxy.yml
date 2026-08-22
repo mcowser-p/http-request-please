@@ -1,0 +1,46 @@
+---
+# Ansible Galaxy collection manifest for mcowser_p.http_request_please.
+#
+# `version` is a placeholder — semantic-release stamps the released version
+# here at release time (see .releaserc.js) before building the collection
+# artifact. Do not bump it by hand.
+namespace: mcowser_p
+name: http_request_please
+version: 0.0.0
+readme: README.md
+authors:
+  - mcowser-p
+description: >-
+  HTTP Request, Please — declarative HTTP sanity checks from a JSON/YAML
+  file or inline vars, runnable via Ansible on Linux and Windows targets
+  or as a reusable GitHub Action. Targets bare IPs, IPs with an SNI/SAN
+  hostname, or DNS names, with configurable scheme/port/path, status and
+  body assertions, and optional certificate SAN validation.
+license:
+  - Apache-2.0
+tags:
+  - http
+  - monitoring
+  - healthcheck
+  - windows
+  - linux
+  - tools
+dependencies:
+  ansible.windows: '>=2.0.0'
+  community.crypto: '>=2.0.0'
+repository: https://github.com/mcowser-p/http-request-please
+homepage: https://github.com/mcowser-p/http-request-please
+issues: https://github.com/mcowser-p/http-request-please/issues
+build_ignore:
+  - .github
+  - .git
+  - .gitignore
+  - .releaserc.js
+  - .ansible-lint
+  - .yamllint
+  - action.yml
+  - package.json
+  - package-lock.json
+  - node_modules
+  - requirements.txt
+  - '*.tar.gz'

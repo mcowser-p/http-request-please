@@ -1,0 +1,47 @@
+---
+# defaults for mcowser_p.http_request_please.http_request_please
+# All variables carry the http_request_please_ prefix (Galaxy var-naming
+# standard).
+
+# Request definitions — a JSON or YAML file (its top level must be a list
+# of request items, or a dict with a `requests` list), and/or an inline
+# list. File and inline items are concatenated.
+http_request_please_file: ""
+http_request_please_requests: []
+
+# Stop at the first failing check instead of running everything and
+# reporting all failures at the end.
+http_request_please_fail_fast: false
+
+# Per-request defaults — every one of these can be overridden per item.
+http_request_please_scheme: https
+http_request_please_port: ""          # empty = scheme default (80/443)
+http_request_please_method: GET
+http_request_please_status_code: [200]
+http_request_please_validate_certs: true
+http_request_please_timeout: 10
+http_request_please_retries: 1
+http_request_please_delay: 3
+
+# Request item schema (all optional except a target — url OR host):
+#   name:          label used in reporting (defaults to the url)
+#   url:           full URL — mutually exclusive with host/port/scheme/path
+#   host:          IP address or DNS name
+#   sni:           hostname to present when `host` is an IP: sent as the
+#                  Host: header, and (with cert_check) validated against
+#                  the certificate's SAN list. When sni is set and
+#                  validate_certs is not explicitly set, cert validation
+#                  is disabled for the request itself (routing mode) —
+#                  cert_check is the honest way to test the certificate.
+#   port:          integer port
+#   scheme:        http | https
+#   path:          request path (default /)
+#   method:        GET/POST/PUT/DELETE/...
+#   headers:       dict of extra headers
+#   body:          request body (with body_format: json for dicts)
+#   body_format:   raw | json | form-urlencoded
+#   status_code:   list of acceptable status codes
+#   contains:      regex the response body must match
+#   cert_check:    true = fetch the certificate from the controller with
+#                  SNI and assert `sni` (or host) appears in its SANs
+#   validate_certs / timeout / retries / delay: per-item overrides

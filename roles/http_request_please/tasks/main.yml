@@ -1,0 +1,59 @@
+---
+- name: Validate inputs
+  ansible.builtin.assert:
+    that:
+      - http_request_please_file | length > 0 or http_request_please_requests | length > 0
+    fail_msg: >-
+      Provide http_request_please_file (JSON/YAML) and/or
+      http_request_please_requests (inline list).
+
+# The definitions file lives on the CONTROLLER (playbook/workflow side).
+# from_yaml parses YAML and JSON alike; the top level may be a list of
+# request items or a dict with a `requests` list.
+- name: Load request definitions from file
+  when: http_request_please_file | length > 0
+  ansible.builtin.set_fact:
+    _http_request_please_filedata: >-
+      {{ lookup('ansible.builtin.file', http_request_please_file) | from_yaml }}
+
+- name: Assemble the request list
+  vars:
+    _filedata: "{{ _http_request_please_filedata | default([]) }}"
+    _from_file: >-
+      {{ _filedata['requests']
+         if (_filedata is mapping and 'requests' in _filedata)
+         else _filedata }}
+  ansible.builtin.set_fact:
+    _http_request_please_all: "{{ _from_file + http_request_please_requests }}"
+
+- name: Validate every item has a target
+  ansible.builtin.assert:
+    that:
+      - _http_request_please_all | length > 0
+      - _http_request_please_all | rejectattr('url', 'defined')
+                                 | rejectattr('host', 'defined')
+                                 | list | length == 0
+    fail_msg: every request item needs either `url` or `host`
+
+- name: Reset results
+  ansible.builtin.set_fact:
+    _http_request_please_results: []
+
+- name: Run the checks
+  ansible.builtin.include_tasks: check.yml
+  loop: "{{ _http_request_please_all }}"
+  loop_control:
+    loop_var: _http_item
+    label: "{{ _http_item.name | default(_http_item.url | default(_http_item.host)) }}"
+
+- name: Summarize
+  vars:
+    _failed: "{{ _http_request_please_results | rejectattr('ok') | list }}"
+  ansible.builtin.assert:
+    that: _failed | length == 0
+    fail_msg: |-
+      {{ _failed | length }}/{{ _http_request_please_results | length }} checks FAILED:
+      {% for r in _failed %}
+        - {{ r.name }}: {{ r.detail }}
+      {% endfor %}
+    success_msg: "All {{ _http_request_please_results | length }} checks passed."

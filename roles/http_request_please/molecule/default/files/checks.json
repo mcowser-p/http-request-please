@@ -1,0 +1,5 @@
+{
+  "requests": [
+    {"name": "file-json-check", "url": "http://httpbin:8080/status/204", "status_code": [204]}
+  ]
+}

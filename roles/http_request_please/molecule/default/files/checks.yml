@@ -1,0 +1,7 @@
+---
+- name: file-yaml-check
+  host: httpbin
+  scheme: http
+  port: 8080
+  path: /get
+  contains: '"url"'
